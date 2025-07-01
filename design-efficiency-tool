@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Project Efficiency System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .lucide-icon {
+            width: 18px;
+            height: 18px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Simple icon components
+        const PlusIcon = () => <span className="lucide-icon">+</span>;
+        const TrendingUpIcon = () => <span className="lucide-icon">📈</span>;
+        const UsersIcon = () => <span className="lucide-icon">👥</span>;
+        const CalendarIcon = () => <span className="lucide-icon">📅</span>;
+        const BarChart3Icon = () => <span className="lucide-icon">📊</span>;
+        const PieChartIcon = () => <span className="lucide-icon">🥧</span>;
+
+        const DesignEfficiencySystem = () => {
+            const [activeTab, setActiveTab] = useState('data-entry');
+            const [projects, setProjects] = useState([]);
+            const [forecastData, setForecastData] = useState(null);
+
+            // Sample historical data
+            const [historicalProjects] = useState([
+                {
+                    id: 1,
+                    name: "Modern Cafe Downtown",
+                    type: "cafe",
+                    area: 120,
+                    stages: [
+                        { name: "Concept Design", planned: 40, actual: 45, contributors: [{ role: "Lead Designer", hours: 30 }, { role: "Junior Designer", hours: 15 }] },
+                        { name: "Technical Design", planned: 60, actual: 55, contributors: [{ role: "Lead Designer", hours: 25 }, { role: "Technical Specialist", hours: 30 }] },
+                        { name: "Documentation", planned: 30, actual: 35, contributors: [{ role: "Technical Specialist", hours: 20 }, { role: "Junior Designer", hours: 15 }] }
+                    ]
+                },
+                {
+                    id: 2,
+                    name: "Corporate Office Space",
+                    type: "office",
+                    area: 500,
+                    stages: [
+                        { name: "Concept Design", planned: 80, actual: 90, contributors: [{ role: "Lead Designer", hours: 60 }, { role: "Junior Designer", hours: 30 }] },
+                        { name: "Technical Design", planned: 120, actual: 110, contributors: [{ role: "Lead Designer", hours: 50 }, { role: "Technical Specialist", hours: 60 }] },
+                        { name: "Documentation", planned: 60, actual: 70, contributors: [{ role: "Technical Specialist", hours: 40 }, { role: "Junior Designer", hours: 30 }] }
+                    ]
+                },
+                {
+                    id: 3,
+                    name: "Luxury Apartment",
+                    type: "living space",
+                    area: 85,
+                    stages: [
+                        { name: "Concept Design", planned: 35, actual: 40, contributors: [{ role: "Lead Designer", hours: 25 }, { role: "Junior Designer", hours: 15 }] },
+                        { name: "Technical Design", planned: 50, actual: 48, contributors: [{ role: "Lead Designer", hours: 20 }, { role: "Technical Specialist", hours: 28 }] },
+                        { name: "Documentation", planned: 25, actual: 30, contributors: [{ role: "Technical Specialist", hours: 18 }, { role: "Junior Designer", hours: 12 }] }
+                    ]
+                }
+            ]);
+
+            // New project form data
+            const [newProject, setNewProject] = useState({
+                name: '',
+                type: 'cafe',
+                area: '',
+                stages: ['Concept Design', 'Technical Design', 'Documentation'],
+                contributors: [
+                    { role: 'Lead Designer', count: 1 },
+                    { role: 'Junior Designer', count: 1 },
+                    { role: 'Technical Specialist', count: 1 }
+                ]
+            });
+
+            // Calculate efficiency metrics
+            const calculateEfficiencyMetrics = (projects) => {
+                const metrics = {};
+                
+                projects.forEach(project => {
+                    if (!metrics[project.type]) {
+                        metrics[project.type] = {
+                            totalProjects: 0,
+                            avgEfficiency: 0,
+                            hoursPerSqm: 0,
+                            stageEfficiency: {}
+                        };
+                    }
+                    
+                    const metric = metrics[project.type];
+                    metric.totalProjects++;
+                    
+                    let totalPlanned = 0;
+                    let totalActual = 0;
+                    
+                    project.stages.forEach(stage => {
+                        totalPlanned += stage.planned;
+                        totalActual += stage.actual;
+                        
+                        if (!metric.stageEfficiency[stage.name]) {
+                            metric.stageEfficiency[stage.name] = { planned: 0, actual: 0, count: 0 };
+                        }
+                        metric.stageEfficiency[stage.name].planned += stage.planned;
+                        metric.stageEfficiency[stage.name].actual += stage.actual;
+                        metric.stageEfficiency[stage.name].count++;
+                    });
+                    
+                    metric.avgEfficiency = (metric.avgEfficiency + (totalPlanned / totalActual)) / 2;
+                    metric.hoursPerSqm = (metric.hoursPerSqm + (totalActual / project.area)) / 2;
+                });
+                
+                return metrics;
+            };
+
+            // Forecast new project
+            const forecastProject = () => {
+                if (!newProject.area || !newProject.type) return;
+                
+                const metrics = calculateEfficiencyMetrics(historicalProjects);
+                const typeMetrics = metrics[newProject.type];
+                
+                if (!typeMetrics) {
+                    alert('No historical data for this project type');
+                    return;
+                }
+                
+                const baseHoursPerSqm = typeMetrics.hoursPerSqm;
+                const totalEstimatedHours = Math.round(baseHoursPerSqm * parseFloat(newProject.area));
+                
+                const stageForecast = newProject.stages.map(stageName => {
+                    const stageMetric = typeMetrics.stageEfficiency[stageName];
+                    if (stageMetric) {
+                        const avgStageHours = stageMetric.actual / stageMetric.count;
+                        const stageRatio = avgStageHours / (Object.values(typeMetrics.stageEfficiency).reduce((sum, s) => sum + (s.actual / s.count), 0));
+                        return {
+                            name: stageName,
+                            estimatedHours: Math.round(totalEstimatedHours * stageRatio),
+                            confidence: stageMetric.count >= 2 ? 'High' : 'Medium'
+                        };
+                    }
+                    return {
+                        name: stageName,
+                        estimatedHours: Math.round(totalEstimatedHours / newProject.stages.length),
+                        confidence: 'Low'
+                    };
+                });
+
+                const contributorForecast = newProject.contributors.map(contributor => {
+                    let roleMultiplier = 1;
+                    if (contributor.role === 'Lead Designer') roleMultiplier = 1.5;
+                    if (contributor.role === 'Technical Specialist') roleMultiplier = 1.2;
+                    if (contributor.role === 'Junior Designer') roleMultiplier = 0.8;
+                    
+                    return {
+                        role: contributor.role,
+                        count: contributor.count,
+                        estimatedHoursPerPerson: Math.round((totalEstimatedHours * roleMultiplier) / newProject.contributors.length / contributor.count)
+                    };
+                });
+
+                setForecastData({
+                    projectName: newProject.name,
+                    totalEstimatedHours,
+                    stageForecast,
+                    contributorForecast,
+                    efficiency: typeMetrics.avgEfficiency,
+                    confidence: typeMetrics.totalProjects >= 3 ? 'High' : 'Medium'
+                });
+            };
+
+            const addProject = () => {
+                if (!newProject.name || !newProject.area) return;
+                
+                const project = {
+                    id: Date.now(),
+                    ...newProject,
+                    area: parseFloat(newProject.area),
+                    stages: newProject.stages.map(stageName => ({
+                        name: stageName,
+                        planned: 0,
+                        actual: 0,
+                        contributors: []
+                    }))
+                };
+                
+                setProjects([...projects, project]);
+                setNewProject({
+                    name: '',
+                    type: 'cafe',
+                    area: '',
+                    stages: ['Concept Design', 'Technical Design', 'Documentation'],
+                    contributors: [
+                        { role: 'Lead Designer', count: 1 },
+                        { role: 'Junior Designer', count: 1 },
+                        { role: 'Technical Specialist', count: 1 }
+                    ]
+                });
+            };
+
+            const metrics = calculateEfficiencyMetrics([...historicalProjects, ...projects]);
+
+            return React.createElement('div', { className: "min-h-screen bg-gray-50" },
+                React.createElement('div', { className: "max-w-7xl mx-auto p-6" },
+                    React.createElement('header', { className: "mb-8" },
+                        React.createElement('h1', { className: "text-3xl font-bold text-gray-900 mb-2" }, "Design Project Efficiency System"),
+                        React.createElement('p', { className: "text-gray-600" }, "Analyze past projects and forecast resource requirements for new design projects")
+                    ),
+
+                    React.createElement('nav', { className: "mb-8" },
+                        React.createElement('div', { className: "flex space-x-1 bg-white rounded-lg p-1 shadow-sm" },
+                            [
+                                { id: 'data-entry', label: 'Project Data', icon: PlusIcon },
+                                { id: 'analytics', label: 'Analytics', icon: BarChart3Icon },
+                                { id: 'forecast', label: 'Forecast', icon: TrendingUpIcon }
+                            ].map(tab =>
+                                React.createElement('button', {
+                                    key: tab.id,
+                                    onClick: () => setActiveTab(tab.id),
+                                    className: `flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-colors ${
+                                        activeTab === tab.id 
+                                            ? 'bg-blue-500 text-white' 
+                                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                    }`
+                                },
+                                    React.createElement(tab.icon),
+                                    React.createElement('span', null, tab.label)
+                                )
+                            )
+                        )
+                    ),
+
+                    // Tab content would go here - simplified for HTML version
+                    React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
+                        React.createElement('h2', { className: "text-xl font-semibold mb-4" }, 
+                            activeTab === 'data-entry' ? 'Project Data Entry' :
+                            activeTab === 'analytics' ? 'Analytics Dashboard' :
+                            'Project Forecast'
+                        ),
+                        React.createElement('p', { className: "text-gray-600" }, 
+                            `This is the ${activeTab} section. Full functionality available in the React version above.`
+                        )
+                    )
+                )
+            );
+        };
+
+        ReactDOM.render(React.createElement(DesignEfficiencySystem), document.getElementById('root'));
+    </script>
+</body>
+</html>
